@@ -13,9 +13,17 @@ public class EncryptedClassLoader extends ClassLoader {
         this.key = key;
         this.dir = dir;
     }
+    @Override
+    protected synchronized Class loadClass(String name,boolean resolve) throws ClassNotFoundException
+    {
+        Class result= findClass(name);
+        if (resolve)
+            resolveClass(result);
+        return result;
+    }
 
     @Override
-    public Class<?> loadClass ( String name ) throws ClassNotFoundException {
+    public Class findClass(String name) throws ClassNotFoundException {
 
         Class <?> result = findClass (name);
         File encryptedClassFile = new File (dir + "\\" + name + ".class");

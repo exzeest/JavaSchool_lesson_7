@@ -14,7 +14,7 @@ public class PluginManager extends ClassLoader {
     public Plugin load ( String pluginName, String pluginClassName ) {
         Plugin plugin = null;
         try {
-            Class <?> pluginClass = findClass (pluginName, pluginClassName);
+            Class <?> pluginClass = loadClass (pluginName, pluginClassName, true);
             plugin = (Plugin) pluginClass.newInstance ();
         } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
             e.printStackTrace ();
@@ -48,6 +48,7 @@ public class PluginManager extends ClassLoader {
         try {
             byte[] classBytes = loadFileAsBytes (pluginFile);
             result = defineClass (pluginClassName, classBytes, 0, classBytes.length);
+
         } catch (IOException e) {
             throw new ClassNotFoundException ("Cannot load class " + pluginClassName + ": " + e);
         } catch (ClassFormatError e) {
@@ -58,9 +59,8 @@ public class PluginManager extends ClassLoader {
         return result;
     }
 
-    @Override
-    protected synchronized Class loadClass ( String name, boolean resolve ) throws ClassNotFoundException {
-        Class result = findClass (name);
+    public Class loadClass ( String pluginName, String pluginClassName, boolean resolve ) throws ClassNotFoundException {
+        Class result = findClass (pluginName, pluginClassName );
         if (resolve)
             resolveClass (result);
         return result;
