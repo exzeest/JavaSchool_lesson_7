@@ -5,32 +5,21 @@ import java.io.*;
 
 public class PluginManager extends ClassLoader {
     private final String pluginRootDirectory;
+    private java.util.Map classesHash = new java.util.HashMap ();
 
     public PluginManager ( String pluginRootDirectory ) {
         this.pluginRootDirectory = pluginRootDirectory;
     }
 
     public Plugin load ( String pluginName, String pluginClassName ) {
-        Class<?> pluginClass = findLoadedClass (pluginClassName);
         Plugin plugin = null;
         try {
-            if (pluginClass != null) {
-                return (Plugin) pluginClass.newInstance ();
-            }
-        } catch (IllegalAccessException | InstantiationException e) {
+            Class <?> pluginClass = findClass (pluginName, pluginClassName);
+            plugin = (Plugin) pluginClass.newInstance ();
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
             e.printStackTrace ();
         }
 
-        File pluginFile = new File (pluginRootDirectory + "\\" + pluginName, pluginClassName + ".class");
-
-        try {
-            byte[] classBytes = loadFileAsBytes (pluginFile);
-            pluginClass = defineClass (pluginClassName, classBytes, 0, classBytes.length);
-            resolveClass (pluginClass);
-            plugin = (Plugin) pluginClass.newInstance ();
-        } catch (IOException | IllegalAccessException | InstantiationException e1) {
-            e1.printStackTrace ();
-        }
 
         return plugin;
     }
@@ -49,6 +38,33 @@ public class PluginManager extends ClassLoader {
         return result;
     }
 
+    private Class findClass ( String pluginName, String pluginClassName ) throws ClassNotFoundException {
+        Class result = (Class) classesHash.get (pluginClassName);
+        if (result != null) {
+            return result;
+        }
+        File pluginFile = new File (pluginRootDirectory + "\\" + pluginName + "\\" + pluginClassName + ".class");
+
+        try {
+            byte[] classBytes = loadFileAsBytes (pluginFile);
+            result = defineClass (pluginClassName, classBytes, 0, classBytes.length);
+        } catch (IOException e) {
+            throw new ClassNotFoundException ("Cannot load class " + pluginClassName + ": " + e);
+        } catch (ClassFormatError e) {
+            throw new ClassNotFoundException ("Format of class file incorrect for class " + pluginClassName + ": " + e);
+        }
+
+        classesHash.put (pluginClassName, result);
+        return result;
+    }
+
+    @Override
+    protected synchronized Class loadClass ( String name, boolean resolve ) throws ClassNotFoundException {
+        Class result = findClass (name);
+        if (resolve)
+            resolveClass (result);
+        return result;
+    }
 
 
 }
